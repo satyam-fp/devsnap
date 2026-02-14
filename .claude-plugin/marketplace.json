@@ -1,11 +1,22 @@
 {
-  "marketplace": "satyam-tools",
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "satyam-tools",
+  "description": "Satyam's collection of Claude Code plugins for developer productivity.",
+  "owner": {
+    "name": "Satyam",
+    "email": "satyam@users.noreply.github.com"
+  },
   "plugins": [
     {
       "name": "gh-profile-updater",
-      "source": "./",
+      "description": "Scans git history and session context to auto-update your GitHub profile README with categorized, impact-driven summaries.",
       "version": "1.0.0",
-      "description": "Scans git history and session context to auto-update your GitHub profile README with categorized, impact-driven summaries."
+      "author": {
+        "name": "Satyam",
+        "email": "satyam@users.noreply.github.com"
+      },
+      "source": "./",
+      "category": "productivity"
     }
   ]
 }
