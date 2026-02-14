@@ -1,0 +1,11 @@
+{
+  "marketplace": "satyam-tools",
+  "plugins": [
+    {
+      "name": "gh-profile-updater",
+      "source": "./",
+      "version": "1.0.0",
+      "description": "Scans git history and session context to auto-update your GitHub profile README with categorized, impact-driven summaries."
+    }
+  ]
+}
