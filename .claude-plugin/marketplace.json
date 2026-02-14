@@ -4,7 +4,7 @@
   "description": "Satyam's collection of Claude Code plugins for developer productivity.",
   "owner": {
     "name": "Satyam",
-    "email": "satyam@users.noreply.github.com"
+    "email": "satyam@mixar.app"
   },
   "plugins": [
     {
@@ -13,7 +13,7 @@
       "version": "1.0.0",
       "author": {
         "name": "Satyam",
-        "email": "satyam@users.noreply.github.com"
+        "email": "satyam@mixar.app"
       },
       "source": "./",
       "category": "productivity"
