@@ -1,11 +1,11 @@
 ---
-allowed-tools: Bash(git log:*), Bash(git remote:*), Bash(git branch:*), Bash(git clone:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(rm -rf /tmp/gh-profile-*), Bash(mktemp:*), Bash(ls:*), Read, Edit, Write, Glob, Grep
+allowed-tools: Bash(git log:*), Bash(git remote:*), Bash(git branch:*), Bash(gh api:*), Bash(gh pr:*)
 description: Generate an impact-driven summary from git activity and update your GitHub profile README
 ---
 
 ## Context
 
-- Recent commits: !`git log --oneline -5`
+- Recent commits: !`git log --oneline -20`
 - Current repo remote: !`git remote get-url origin`
 - Current branch: !`git branch --show-current`
 
@@ -15,8 +15,9 @@ Follow these steps **exactly**:
 
 ### Step 1 — Gather Data
 
-1. **Git commits**: Review the recent commits provided above. Parse each commit message for what was accomplished.
+1. **Git commits**: Review the 20 recent commits provided above. Parse each commit message for what was accomplished.
 2. **Session context**: Review the current conversation history for any tasks completed, bugs fixed, features built, or concepts explored during this session.
+3. **Extended context** (optional): If the user explicitly asks for a broader scan, also consider open PRs, recent branches, and any other signals of recent work visible in the conversation.
 
 ### Step 2 — Classify Progress
 
@@ -46,66 +47,110 @@ Compose the summary following these rules:
     Shipped v2.0 of the analytics dashboard with sub-100ms query latency. Learned BigQuery's optimized JOIN strategies along the way. Refactored the ETL pipeline to reduce daily compute costs by 35%.
     ```
 
-### Step 4 — Locate the Profile README
+### Step 4 — Review & Edit
 
-1. Determine the user's GitHub username by extracting the owner from the repo remote URL above.
-2. Look for a local directory at the **same level as the current repo** named after that username (the conventional GitHub profile repo, e.g., `../satyam-fp/`).
-3. If a local clone exists, use it directly — open `README.md` inside it.
-4. **If no local clone exists**, automatically clone the profile repo to a temp directory:
-   ```
-   TMPDIR=$(mktemp -d /tmp/gh-profile-XXXXXX)
-   git clone https://github.com/{username}/{username}.git "$TMPDIR"
-   ```
-   Then open `$TMPDIR/README.md`.
-5. If the profile repo doesn't exist on GitHub at all, ask the user for the path or URL to their profile README.
+**Hard stop — do not proceed past this step until the user explicitly approves.**
 
-### Step 5 — Patch the README
+1. Present the draft summary to the user inside a fenced code block.
+2. Ask the user to review it. They may request edits, rewording, additions, or removals.
+3. If the user requests changes, revise the summary and present it again.
+4. Only proceed to Step 5 once the user gives explicit approval (e.g., "looks good", "approved", "go ahead").
 
-1. **Look for sentinel tags:**
-   ```html
-   <!-- RECENT-VELOCITY:START -->
-   ...existing content...
-   <!-- RECENT-VELOCITY:END -->
+### Step 5 — Read Profile README via API
+
+1. Determine the GitHub username by extracting the owner from the repo remote URL above.
+2. Fetch the current profile README via the GitHub API:
+   ```bash
+   gh api repos/{username}/{username}/contents/README.md
    ```
-2. **If the tags exist:** Replace everything between them (exclusive of the tags themselves) with the new summary from Step 3.
-3. **If the tags do NOT exist:** Append the following block to the **end** of the README:
+3. Extract the `content` field (base64-encoded) and decode it to get the current README text.
+4. Extract the `sha` field — this is required for updating the file later.
+5. If the profile repo or README doesn't exist, inform the user and stop.
+
+### Step 6 — Archive Old Velocity
+
+1. Look for existing content between `<!-- RECENT-VELOCITY:START -->` and `<!-- RECENT-VELOCITY:END -->` in the decoded README.
+2. If there is existing content between the tags **and** it differs from the new summary:
+   - Extract the old content.
+   - Look for a `<!-- PAST-PROJECTS:START -->` / `<!-- PAST-PROJECTS:END -->` section in the README.
+   - If the PAST-PROJECTS section **does not exist**, create it immediately after the `<!-- RECENT-VELOCITY:END -->` tag:
+     ```markdown
+
+     ## 📦 Past Projects
+
+     <!-- PAST-PROJECTS:START -->
+     <!-- PAST-PROJECTS:END -->
+     ```
+   - Insert the archived content at the **top** of the PAST-PROJECTS section (newest first), formatted with a month/year header:
+     ```markdown
+     ### Feb 2026
+     {old velocity content}
+     ```
+3. If the tags don't exist yet, or the section is empty, skip archiving — there's nothing to archive.
+
+### Step 7 — Patch README in Memory
+
+1. **If sentinel tags exist:** Replace everything between `<!-- RECENT-VELOCITY:START -->` and `<!-- RECENT-VELOCITY:END -->` (exclusive of the tags) with the approved summary from Step 4.
+2. **If sentinel tags do NOT exist:** Append the following block to the end of the README:
 
    ```markdown
 
    ## 🛠️ Recent Velocity
 
    <!-- RECENT-VELOCITY:START -->
-   {summary from Step 3}
+   {approved summary}
    <!-- RECENT-VELOCITY:END -->
    ```
 
-4. Write the file back to disk using the Edit or Write tool.
+3. Keep the full updated README content in memory — do not write any files to disk.
 
-### Step 6 — Commit and Push
+### Step 8 — Push via API & Create PR
 
-If the README was cloned to a temp directory (i.e., no pre-existing local repo was used):
+Use the GitHub API to create a branch, push the updated README, and open a pull request:
 
-1. `cd` into the temp directory.
-2. Stage the change: `git add README.md`
-3. Commit: `git commit -m "Update recent velocity snapshot"`
-4. Push: `git push origin main`
-5. Clean up: `rm -rf $TMPDIR`
+```bash
+# 8a. Get the SHA of the main branch
+gh api repos/{username}/{username}/git/ref/heads/main --jq '.object.sha'
 
-If a local repo was used, only write the file — do NOT commit or push automatically. Inform the user that the file has been updated locally and they can commit/push when ready.
+# 8b. Create a new branch
+gh api --method POST repos/{username}/{username}/git/refs \
+  -f ref="refs/heads/profile-update-{YYYY-MM-DD}" -f sha="{main_sha}"
 
-### Step 7 — Report Back
+# 8c. Update the file on the new branch (base64-encode the full README via heredoc)
+gh api --method PUT repos/{username}/{username}/contents/README.md \
+  -f message="Update recent velocity snapshot" \
+  -f sha="{file_sha}" -f branch="profile-update-{YYYY-MM-DD}" \
+  -f content="$(base64 <<'READMEEOF'
+{full updated README content}
+READMEEOF
+)"
+
+# 8d. Create a pull request
+gh pr create --repo {username}/{username} --base main --head "profile-update-{YYYY-MM-DD}" \
+  --title "Update profile velocity snapshot" --body "Auto-generated by gh-profile-updater.
+
+Updates the Recent Velocity section with latest activity and archives previous snapshot to Past Projects."
+```
+
+**Note:** Use a single-quoted heredoc (`<<'READMEEOF'`) so that special characters in the markdown content are passed through literally.
+
+If a branch with the same name already exists (e.g., from a previous run today), append a short suffix (e.g., `-v2`) to make it unique.
+
+### Step 9 — Report Back
 
 Print a short confirmation to the user:
 
 ```
-Profile README updated with your latest velocity snapshot.
+Profile README updated via pull request.
 Categories: {list categories that had entries}
-File: {absolute path to the README that was modified}
-Pushed to remote: yes/no
+PR: {URL of the created pull request}
+Archived previous velocity: yes/no
 ```
 
 ## Constraints
 
 - Never fabricate commits or activity. Only summarize what is verifiable from git log output or the current session.
 - If there are zero meaningful items to report, inform the user instead of writing an empty section.
-- Do not remove or alter any content in the README outside of the sentinel tags or the appended section.
+- Do not remove or alter any content in the README outside of the sentinel tags, the PAST-PROJECTS section, or the appended section.
+- Do not proceed past Step 4 without explicit user approval of the summary.
+- Never push directly to main — always create a PR.
