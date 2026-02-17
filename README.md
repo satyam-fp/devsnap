@@ -1,4 +1,4 @@
-# gh-profile-updater
+# devsnap
 
 A Claude Code plugin that automatically generates impact-driven summaries from your git activity and updates your GitHub profile README — so your profile always reflects what you're *actually* shipping.
 
@@ -6,7 +6,7 @@ A Claude Code plugin that automatically generates impact-driven summaries from y
 
 ## What It Does
 
-`gh-profile-updater` scans your recent git commits and current session context, classifies your progress, and writes a polished summary into your GitHub profile README — via pull request, so you always get a chance to review before it goes live.
+`devsnap` scans your recent git commits and current session context, classifies your progress, and writes a polished summary into your GitHub profile README — via pull request, so you always get a chance to review before it goes live.
 
 Every item is categorized into one of three buckets:
 
@@ -33,13 +33,13 @@ The output focuses on **impact**, not activity — *"Cut API latency by 40%"* in
 ### 1. Add the marketplace
 
 ```
-/plugin marketplace add satyam-fp/gh-profile-updater
+/plugin marketplace add satyam-fp/devsnap
 ```
 
 ### 2. Install the plugin
 
 ```
-/plugin install gh-profile-updater@satyam-tools
+/plugin install devsnap@satyam-tools
 ```
 
 ### 3. Run the skill

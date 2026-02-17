@@ -1,5 +1,5 @@
 {
-  "name": "gh-profile-updater",
+  "name": "devsnap",
   "description": "Automatically generates impact-driven summaries from your git activity and updates your GitHub profile README.",
   "author": {
     "name": "Satyam",

@@ -8,7 +8,7 @@
   },
   "plugins": [
     {
-      "name": "gh-profile-updater",
+      "name": "devsnap",
       "description": "Scans git history and session context to auto-update your GitHub profile README with categorized, impact-driven summaries.",
       "version": "2.0.0",
       "author": {
