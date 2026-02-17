@@ -10,7 +10,7 @@
     {
       "name": "gh-profile-updater",
       "description": "Scans git history and session context to auto-update your GitHub profile README with categorized, impact-driven summaries.",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "author": {
         "name": "Satyam",
         "email": "satyam@mixar.app"
