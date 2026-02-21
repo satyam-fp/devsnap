@@ -48,6 +48,12 @@ The output focuses on **impact**, not activity — *"Cut API latency by 40%"* in
 /update-profile
 ```
 
+## Remove marketplace
+
+```
+/plugin marketplace remove satyam-tools
+```
+
 That's it. The plugin will scan your recent work, present a draft for your review, and open a PR to update your profile README.
 
 ---
