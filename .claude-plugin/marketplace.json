@@ -15,7 +15,7 @@
         "name": "Satyam",
         "email": "satyam@mixar.app"
       },
-      "source": "./",
+      "source": "./plugins/devsnap",
       "category": "productivity"
     }
   ]
